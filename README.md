@@ -11,43 +11,72 @@ Talos Linux is a modern, secure, and immutable operating system designed specifi
 ## Single Node Cluster Setup Guide on Proxmox
 
 1. Install talosctl (`brew install talosctl`)
-2. Create Proxmox VM
+2. Create Proxmox VM with the following specifications:
+   - OS Type: Linux
+   - Disk Size: 20 GB
+   - CPU: 4 cores
+   - RAM: 4096 MB
+   - Network: Bridged mode (ensure it can get an IP via DHCP) (\*) You can also set a passthrough NIC if needed
 3. Mount Talos ISO and boot from it (Talos ISO can be downloaded from the [Talos Linux Image Factory](https://factory.talos.dev/))
 4. Find the IP address of the Talos node (console output)
 5. Set the Talos node IP address:
    ```bash
-   export TALOSCTL_NODE=<Talos_Node_IP>
+   export DHCP_MASTER_IP=<ip-address-from-console>
+   export MASTER_NODE_IP=<desired-talos-node-ip>
    ```
 6. Generate secrets for the Talos cluster:
    ```bash
    talosctl gen secrets
    ```
-7. Generate Talos configuration files (IMPORTANT: make sure to customize the `talos-single-node.yaml`):
+7. Generate Talos configuration files (IMPORTANT: make sure to customize the `talos-single-node-cluster.yaml` before running this command):
    ```bash
-   talosctl gen config <cluster-name> https://$TALOSCTL_NODE:6443 \
+   talosctl gen config talos-proxmox-cluster https://$MASTER_NODE_IP:6443 \
      --with-secrets secrets.yaml \
-     --config-patch @talos-single-node.yaml \
+     --config-patch @talos-single-node-cluster.yaml \
      --output output_config
    ```
-8. Apply the Talos configuration to the node:
+8. Apply the Talos configuration to the control plane (the only node in this case):
    ```bash
-   talosctl apply-config --insecure --nodes $TALOSCTL_NODE --file output_config/talosconfig.yaml
+   talosctl apply-config --insecure --nodes $DHCP_MASTER_IP --file output_config/controlplane.yaml
    ```
-9. Reboot the Talos node to apply the configuration:
-   ```bash
-   talosctl reboot --insecure --nodes $TALOSCTL_NODE
-   ```
-10. Monitor the node status until it becomes ready:
-    ```bash
-    talosctl --insecure --nodes $TALOSCTL_NODE get nodes
-    ```
-11. Once the node is ready, you can interact with the Kubernetes cluster using `kubectl`:
-    ```bash
-    export KUBECONFIG=$(talosctl kubeconfig --insecure --nodes $TALOSCTL_NODE)
-    kubectl get nodes
-    ```
+9. Wait until the node reboots and gets the desired IP address
+
+## Util commands for Talos Cluster Management
+
+Commands to bootstrap and manage the Talos cluster:
+
+```bash
+export TALOSCONFIG=output_config/talosconfig
+
+talosctl config contexts # List contexts
+talosctl config endpoint $MASTER_NODE_IP # Define the endpoint
+talosctl bootstrap -n $MASTER_NODE_IP # Bootstrap the cluster
+talosctl kubeconfig -n $MASTER_NODE_IP # Get kubeconfig and put it in ~/.kube/config
+talosctl dashboard -n $MASTER_NODE_IP # Access Talos dashboard
+
+talosctl -n <node-ip> reset # (*) Remove a node from the cluster (if needed)
+```
+
+To update the configuration of the node (not use `--insecure`):
+
+```bash
+talosctl apply-config -f output_config/controlplane.yaml -n $MASTER_NODE_IP
+```
+
+For testing purposes, you can run an nginx pod:
+
+```bash
+kubectl run nginx --image=nginx --port=80
+kubectl port-forward pod/nginx 8080:80
+
+curl http://localhost:8080
+
+kubectl delete pod/nginx
+```
 
 ## Creating Helm template for Talos Cilium Installation
+
+With this command you can create a Helm template for installing Cilium on Talos, which you can then reference in the Talos configuration file (`talos-single-node-cluster.yaml`):
 
 ```bash
 helm repo add cilium https://helm.cilium.io/

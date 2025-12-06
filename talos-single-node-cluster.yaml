@@ -1,0 +1,26 @@
+cluster:
+  allowSchedulingOnControlPlanes: true 
+  network:
+    cni:
+        name: custom
+        urls:
+          # (*) Choose one CNI and comment the other
+
+          # Cilium
+          - https://raw.githubusercontent.com/AntonioMartinezFernandez/talos/refs/heads/main/cilium-helm-template.yaml
+
+          # Calico
+          # - https://raw.githubusercontent.com/projectcalico/calico/v3.25.0/manifests/calico.yaml
+machine:
+  network: 
+    hostname: talos-proxmox # (*) Change the hostname here
+    interfaces:
+      - interface: eth0 
+        addresses:
+        - 192.168.1.190/24 # (*) Change IP CIDR here (IP address and netmask)
+        routes:
+        - network: 0.0.0.0/0
+          gateway: 192.168.1.1 # (*) Change default gateway here
+        dhcp: false
+    nameservers:
+    - 192.168.1.115 # (*) Change DNS server here
