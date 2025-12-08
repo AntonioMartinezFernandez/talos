@@ -1,12 +1,12 @@
 cluster:
-  allowSchedulingOnControlPlanes: true 
+  allowSchedulingOnControlPlanes: true # (*) Enable scheduling on control plane (single-node clusters should have this enabled)
   network:
     cni:
         name: custom
         urls:
           # (*) Choose one CNI and comment the other
 
-          # Cilium
+          # Cilium (Helm template previously generated with the instructions provided in the README)
           - https://raw.githubusercontent.com/AntonioMartinezFernandez/talos/refs/heads/main/cilium-helm-template.yaml
 
           # Calico

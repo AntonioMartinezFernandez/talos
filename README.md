@@ -8,7 +8,7 @@ Talos Linux is a modern, secure, and immutable operating system designed specifi
 - [Deploy Cilium CLI on Talos](https://cilium.io/blog/2023/09/28/cilium-cli-talos/)
 - [Having fun with Cilium (BGP)](https://medium.com/@rob.de.graaf88/having-fun-with-cilium-bgp-talos-and-unifi-cloud-gateway-ultra-111ffb39757e)
 
-## Single Node Cluster Setup Guide on Proxmox
+## Master Node Setup Guide (using VM on Proxmox)
 
 1. Install talosctl (`brew install talosctl`)
 2. Create Proxmox VM with the following specifications:
@@ -28,11 +28,11 @@ Talos Linux is a modern, secure, and immutable operating system designed specifi
    ```bash
    talosctl gen secrets
    ```
-7. Generate Talos configuration files (IMPORTANT: make sure to customize the `talos-single-node-cluster.yaml` before running this command):
+7. Generate Talos configuration files (IMPORTANT: make sure to customize the `talos-cluster-config.yaml` before running this command):
    ```bash
    talosctl gen config talos-proxmox-cluster https://$MASTER_NODE_IP:6443 \
      --with-secrets secrets.yaml \
-     --config-patch @talos-single-node-cluster.yaml \
+     --config-patch @talos-cluster-config.yaml \
      --output output_config
    ```
 8. Apply the Talos configuration to the control plane (the only node in this case):
@@ -41,12 +41,48 @@ Talos Linux is a modern, secure, and immutable operating system designed specifi
    ```
 9. Wait until the node reboots and gets the desired IP address
 
+## Worker Node Setup Guide (using Raspberry Pi)
+
+1. Update the Raspberry Pi EPROM to the latest version using the [Raspberry Pi Imager](https://www.raspberrypi.com/software/) and selecting Misc utility images under the Operating System tab. Power the Raspberry Pi on with the SD card recently flashed, and wait at least 10 seconds. If successful, the green LED light will blink rapidly (forever), otherwise an error pattern will be displayed. If an HDMI display is attached to the port closest to the power/USB-C port, the screen will display green for success or red if a failure occurs.
+1. Download the Talos image for Raspberry Pi (check last version at [Talos Linux Image Factory](https://factory.talos.dev/))
+   ```bash
+   curl -LO https://factory.talos.dev/image/ee21ef4a5ef808a9b7484cc0dda0f25075021691c8c09a276591eedb638ea1f9/v1.11.5/metal-arm64.raw.xz
+   xz -d metal-arm64.raw.xz
+   ```
+1. Flash the Talos image to the SD card
+   ```bash
+   sudo diskutil list # Identify your SD card (e.g., /dev/disk4)
+   sudo diskutil eraseDisk FAT32 raspi MBRFormat /dev/<diskN> # Replace <diskN> with your SD card identifier
+   sudo diskutil unmountDisk /dev/<diskN> # Replace <diskN> with your SD card identifier
+   sudo dd if=metal-arm64.raw of=/dev/<diskN> conv=fsync bs=4M # Replace <diskN> with your SD card identifier
+   ```
+1. Insert the SD card into the Raspberry Pi and power it on
+1. Find the IP address of the Talos node (console output or check your router's DHCP leases)
+1. Get the disk identifier for the Raspbberry Pi (usually `/dev/mmcblk0`) and the network interface name (usually `end0`):
+   ```bash
+   talosctl apply-config --insecure --mode=interactive --nodes <raspberry-pi-ip>
+   ```
+1. In the `output_config/worker.yaml` file, update the fields:
+
+```
+machine.network.hostname: <desired-hostname-for-raspberry-pi> - e.g.: talos-raspi-1
+machine.network.interfaces[0].interface: end0 # Ensure this matches the interface name found earlier
+machine.network.interfaces[0].addresses: <desired-ip-address-for-raspberry-pi>/24 - e.g.: 192.168.1.191/24
+machine.install.disk: /dev/mmcblk0 # Ensure this matches the disk identifier found earlier
+```
+
+1. Bootstrap the node to join the cluster:
+   ```bash
+   talosctl apply-config --insecure --nodes <raspberry-pi-ip> --file output_config/worker.yaml
+   ```
+
 ## Util commands for Talos Cluster Management
 
 Commands to bootstrap and manage the Talos cluster:
 
 ```bash
-export TALOSCONFIG=output_config/talosconfig
+export TALOSCONFIG=output_config/talosconfig # Configure talosctl to use the generated talosconfig
+cp output_config/talosconfig ~/.talos/config # Optional: copy talosconfig to default location
 
 talosctl config contexts # List contexts
 talosctl config endpoint $MASTER_NODE_IP # Define the endpoint
@@ -76,7 +112,7 @@ kubectl delete pod/nginx
 
 ## Creating Helm template for Talos Cilium Installation
 
-With this command you can create a Helm template for installing Cilium on Talos, which you can then reference in the Talos configuration file (`talos-single-node-cluster.yaml`):
+With this command you can create a Helm template for installing Cilium on Talos, which you can then reference in the Talos configuration file (`talos-cluster-config.yaml`):
 
 ```bash
 helm repo add cilium https://helm.cilium.io/
