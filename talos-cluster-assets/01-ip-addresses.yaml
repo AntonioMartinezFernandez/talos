@@ -1,0 +1,22 @@
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: talos-cluster-ip-addresses
+  namespace: metallb-system
+spec:
+  addresses:
+    # - 192.168.1.200-192.168.1.205 # Range of IP addresses
+    - 192.168.1.200/32 # Fixed IP address
+  autoAssign: true
+---
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: l2-advertisement
+  namespace: metallb-system
+spec:
+  ipAddressPools:
+    - talos-cluster-ip-addresses
+  interfaces:
+    - eth0
+    - end0

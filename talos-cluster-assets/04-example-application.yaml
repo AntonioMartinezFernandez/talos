@@ -1,0 +1,86 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: example-app-namespace
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: example-app-deployment
+  namespace: example-app-namespace
+  labels:
+    app: example-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: example-app
+  template:
+    metadata:
+      labels:
+        app: example-app
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: example-app
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: 
+            - ALL
+        image: hashicorp/http-echo:1.0.0
+        args:
+        - "-text=App is running!"
+        ports:
+        - containerPort: 5678
+        resources:
+          requests:
+            cpu: 100m
+            memory: 100Mi
+          limits:
+            cpu: 100m
+            memory: 100Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: example-app-service
+  namespace: example-app-namespace
+spec:
+  type: ClusterIP
+  selector:
+    app: example-app
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 5678
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: amf-cluster-ingress
+  namespace: example-app-namespace
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    kubernetes.io/ingress.class: nginx
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - amf-cluster.duckdns.org
+    secretName: amf-cluster-tls
+  rules:
+  - host: amf-cluster.duckdns.org
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: example-app-service
+            port:
+              number: 80

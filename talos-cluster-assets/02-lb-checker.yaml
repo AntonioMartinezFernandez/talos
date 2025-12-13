@@ -1,0 +1,51 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: lb-checker
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lb-checker-deployment
+  namespace: lb-checker
+  labels:
+    app: lb-checker-web
+spec:
+  selector:
+    matchLabels:
+      app: lb-checker-web
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: lb-checker-web
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: lb-checker-web
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: 
+            - ALL
+        image: nginxinc/nginx-unprivileged:stable
+        ports:
+        - containerPort: 8080 # NGINX unprivileged port
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: lb-checker-service
+  namespace: lb-checker
+spec:
+  type: LoadBalancer
+  selector:
+    app: lb-checker-web
+  ports:
+    - protocol: TCP
+      port: 8888 # External port
+      targetPort: 8080 # NGINX unprivileged port
