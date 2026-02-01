@@ -1,0 +1,125 @@
+## ArgoCD Helm Values for homelab use
+## This configuration prioritizes simplicity and ease of use over security
+
+global:
+  domain: argocd.homelab.local  # Change this to your domain or use IP
+  
+  # Image configuration (required by the chart)
+  image:
+    repository: quay.io/argoproj/argocd
+    tag: ""  # Empty tag uses the chart's default version
+    imagePullPolicy: IfNotPresent
+
+## Server Configuration
+server:
+  # Run in insecure mode (HTTP instead of HTTPS)
+  # This disables TLS and is suitable for homelab use behind a reverse proxy
+  extraArgs:
+    - --insecure
+  
+  # Service configuration
+  service:
+    # type: LoadBalancer  # Change to NodePort or ClusterIP if needed
+    type: NodePort
+    nodePortHttp: 30080
+    # nodePortHttps: 30443
+  
+  # Ingress configuration (optional - uncomment if using ingress)
+  # ingress:
+  #   enabled: true
+  #   ingressClassName: nginx  # or traefik, etc.
+  #   hosts:
+  #     - argocd.homelab.local
+  #   tls: false  # Set to true if you want TLS at ingress level
+  
+  # Disable metrics for simpler setup
+  metrics:
+    enabled: false
+
+## Disable external authentication services
+configs:
+  params:
+    # Disable TLS
+    server.insecure: true
+    
+  # Disable Dex (SSO/OAuth)
+  dex.enabled: false
+  
+  cm:
+    # Allow anonymous access (optional - comment out if you want login required)
+    # users.anonymous.enabled: "true"
+    
+    # Timeout settings
+    timeout.reconciliation: 180s
+    
+    # Application settings
+    application.instanceLabelKey: argocd.argoproj.io/instance
+
+  # RBAC configuration - simple setup for homelab
+  rbac:
+    policy.default: role:admin  # Give default users admin access
+    scopes: '[groups, email]'
+
+## Redis
+redis:
+  # Use single Redis instance (simpler for homelab)
+  enabled: true
+  
+  # Disable metrics
+  metrics:
+    enabled: false
+
+## Repository Server
+repoServer:
+  # Disable metrics
+  metrics:
+    enabled: false
+
+## Application Controller
+controller:
+  # Disable metrics
+  metrics:
+    enabled: false
+
+## Disable Dex completely (no SSO needed for homelab)
+dex:
+  enabled: false
+
+## Notifications Controller (optional - disable if not needed)
+notifications:
+  enabled: false
+
+## ApplicationSet Controller
+applicationSet:
+  enabled: true
+  metrics:
+    enabled: false
+
+## Resource limits - adjusted for homelab
+# Uncomment and adjust based on your cluster resources
+# server:
+#   resources:
+#     limits:
+#       cpu: 500m
+#       memory: 512Mi
+#     requests:
+#       cpu: 250m
+#       memory: 256Mi
+# 
+# controller:
+#   resources:
+#     limits:
+#       cpu: 1000m
+#       memory: 1Gi
+#     requests:
+#       cpu: 500m
+#       memory: 512Mi
+# 
+# repoServer:
+#   resources:
+#     limits:
+#       cpu: 500m
+#       memory: 512Mi
+#     requests:
+#       cpu: 250m
+#       memory: 256Mi

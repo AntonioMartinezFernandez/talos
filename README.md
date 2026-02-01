@@ -2,12 +2,45 @@
 
 Talos Linux is a modern, secure, and immutable operating system designed specifically for running Kubernetes clusters. This repository provides configuration files and instructions to set up a single-node Talos cluster on Proxmox.
 
+Tools:
+
+- [Talos CLI](https://formulae.brew.sh/formula/talosctl)
+- [kubectl](https://formulae.brew.sh/formula/kubernetes-cli)
+- [Helm](https://formulae.brew.sh/formula/helm)
+- [cilium CLI](https://formulae.brew.sh/formula/cilium-cli)
+
 ## Resources
+
+- [Install k8s Cluster Assets](./assets/README.md)
 
 - [Talos Linux Official Documentation](https://docs.siderolabs.com/talos/v1.11/platform-specific-installations/virtualized-platforms/proxmox)
 - [Deploy Cilium CLI on Talos](https://cilium.io/blog/2023/09/28/cilium-cli-talos/)
 - [Having fun with Cilium (BGP)](https://medium.com/@rob.de.graaf88/having-fun-with-cilium-bgp-talos-and-unifi-cloud-gateway-ultra-111ffb39757e)
-- [Install Cluster Assets](./assets/README.md)
+
+### Creating Helm template for Talos Cilium Installation
+
+With this command you can create a Helm template for installing Cilium on Talos, which you can then reference in the Talos configuration file (`talos-cluster-config.yaml`):
+
+```bash
+helm repo add cilium https://helm.cilium.io/
+helm repo update
+
+helm template \
+  cilium \
+  cilium/cilium \
+  --version 1.18.6 \
+  --namespace kube-system \
+  --set ipam.mode=kubernetes \
+  --set kubeProxyReplacement=true \
+  --set securityContext.capabilities.ciliumAgent="{CHOWN,KILL,NET_ADMIN,NET_RAW,IPC_LOCK,SYS_ADMIN,SYS_RESOURCE,DAC_OVERRIDE,FOWNER,SETGID,SETUID}" \
+  --set securityContext.capabilities.cleanCiliumState="{NET_ADMIN,SYS_ADMIN,SYS_RESOURCE}" \
+  --set cgroup.autoMount.enabled=false \
+  --set cgroup.hostRoot=/sys/fs/cgroup \
+  --set k8sServiceHost=localhost \
+  --set kubeProxyReplacement=true \
+  --set gatewayAPI.enabled=true \
+  --set k8sServicePort=7445 > cilium-gateway-api-helm-template.yaml
+```
 
 ## Control Plane Setup Guide (using VM on Proxmox)
 
@@ -127,29 +160,4 @@ talosctl --context talos-proxmox-cluster upgrade -n <NODE_IP_ADDRESS>
 
 # Upgrade k8s version
 talosctl --context talos-proxmox-cluster upgrade-k8s -n <CONTROL_PLANE_IP_ADDRESS>
-```
-
-## Creating Helm template for Talos Cilium Installation
-
-With this command you can create a Helm template for installing Cilium on Talos, which you can then reference in the Talos configuration file (`talos-cluster-config.yaml`):
-
-```bash
-helm repo add cilium https://helm.cilium.io/
-helm repo update
-
-helm template \
-  cilium \
-  cilium/cilium \
-  --version 1.18.6 \
-  --namespace kube-system \
-  --set ipam.mode=kubernetes \
-  --set kubeProxyReplacement=true \
-  --set securityContext.capabilities.ciliumAgent="{CHOWN,KILL,NET_ADMIN,NET_RAW,IPC_LOCK,SYS_ADMIN,SYS_RESOURCE,DAC_OVERRIDE,FOWNER,SETGID,SETUID}" \
-  --set securityContext.capabilities.cleanCiliumState="{NET_ADMIN,SYS_ADMIN,SYS_RESOURCE}" \
-  --set cgroup.autoMount.enabled=false \
-  --set cgroup.hostRoot=/sys/fs/cgroup \
-  --set k8sServiceHost=localhost \
-  --set kubeProxyReplacement=true \
-  --set gatewayAPI.enabled=true \
-  --set k8sServicePort=7445 > cilium-gateway-api-helm-template.yaml
 ```
