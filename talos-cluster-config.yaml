@@ -6,7 +6,7 @@ cluster:
         urls:
           # (*) Choose one CNI and comment the other
 
-          # Cilium (Helm template previously generated with the instructions provided in the README)
+          # Cilium (Helm template previously generated following the instructions provided in the main README.md)
           - https://raw.githubusercontent.com/AntonioMartinezFernandez/talos/refs/heads/main/cilium-gateway-api-helm-template.yaml
 
           # Calico

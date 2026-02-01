@@ -7,8 +7,9 @@ Talos Linux is a modern, secure, and immutable operating system designed specifi
 - [Talos Linux Official Documentation](https://docs.siderolabs.com/talos/v1.11/platform-specific-installations/virtualized-platforms/proxmox)
 - [Deploy Cilium CLI on Talos](https://cilium.io/blog/2023/09/28/cilium-cli-talos/)
 - [Having fun with Cilium (BGP)](https://medium.com/@rob.de.graaf88/having-fun-with-cilium-bgp-talos-and-unifi-cloud-gateway-ultra-111ffb39757e)
+- [Install Cluster Assets](./assets/README.md)
 
-## Master Node Setup Guide (using VM on Proxmox)
+## Control Plane Setup Guide (using VM on Proxmox)
 
 1. Install talosctl (`brew install talosctl`)
 2. Create Proxmox VM with the following specifications:

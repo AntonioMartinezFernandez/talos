@@ -1,4 +1,4 @@
-# Install Talos Cluster Assets
+# Install Talos k8s Cluster Assets
 
 Prerequisites:
 
