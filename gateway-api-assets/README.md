@@ -67,27 +67,6 @@ k apply -f 05-gateway-class.yaml
 k apply -f 06-gateway.yaml
 k apply -f 07-http-route.yaml
 k apply -f 08-https-route.yaml
-
-# Deploy Gateway
-k apply -f 05-gateway.yaml
-
-# Deploy Certificate
-k apply -f 06-certificate.yaml
-
-```
-
-## Install Cilium Gateway API
-
-```bash
-
-# Install Gateway API manifests for the application
-kubectl apply -f gateway-api/01-gateway-class.yaml
-kubectl apply -f gateway-api/02-gateway.yaml
-kubectl apply -f gateway-api/03-certificate.yaml
-
-# Check certificate
-kubectl get certificate -w
-kubectl describe certificate amf-cluster-cert
 ```
 
 ## NOTES
@@ -95,18 +74,3 @@ kubectl describe certificate amf-cluster-cert
 - Check why the proxmox node is not reachable when curl the EXTERNAL-IP provided by MetalLB (load balancer)
   - Maybe due to the interface configuration in the Talos nodes?
 - Once the proxmox node is reachable, replace the type of the service in the example application from ClusterIP to LoadBalancer to test the full path (ingress controller + cert-manager + example application)
-
-kubectl delete crd gatewayclasses.gateway.networking.k8s.io && \
-kubectl delete crd gateways.gateway.networking.k8s.io && \
-kubectl delete crd httproutes.gateway.networking.k8s.io && \
-kubectl delete crd referencegrants.gateway.networking.k8s.io && \
-kubectl delete crd grpcroutes.gateway.networking.k8s.io && \
-kubectl delete crd tlsroutes.gateway.networking.k8s.io
-
-kubectl rollout restart deployment/cert-manager -n cert-manager
-kubectl rollout restart deployment/cert-manager-webhook -n cert-manager
-kubectl rollout restart deployment/cert-manager-cainjector -n cert-manager
-
-# Esperar a que estén listos
-
-kubectl rollout status deployment/cert-manager -n cert-manager
