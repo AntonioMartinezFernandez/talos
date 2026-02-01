@@ -58,29 +58,3 @@ spec:
     - protocol: TCP
       port: 80
       targetPort: 5678
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: amf-cluster-ingress
-  namespace: example-app-namespace
-  annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-prod
-    kubernetes.io/ingress.class: nginx
-spec:
-  ingressClassName: nginx
-  tls:
-  - hosts:
-    - amf-cluster.duckdns.org
-    secretName: amf-cluster-tls
-  rules:
-  - host: amf-cluster.duckdns.org
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: example-app-service
-            port:
-              number: 80

@@ -35,11 +35,15 @@ Talos Linux is a modern, secure, and immutable operating system designed specifi
      --config-patch @talos-cluster-config.yaml \
      --output output_config
    ```
-8. Apply the Talos configuration to the control plane (the only node in this case):
+8. In the `output_config/controlplane.yaml` file, update the fields:
+   ```
+   machine.network.hostname: <desired-hostname-for-controlplane> - e.g.: talos-proxmox (or define it on v1alpha1/HostnameConfig CR at the bottom)
+   ```
+9. Apply the Talos configuration to the control plane (the only node in this case):
    ```bash
    talosctl apply-config --insecure --nodes $DHCP_MASTER_IP --file output_config/controlplane.yaml
    ```
-9. Wait until the node reboots and gets the desired IP address
+10. Wait until the node reboots and gets the desired IP address
 
 ## Worker Node Setup Guide (using Raspberry Pi)
 
@@ -65,7 +69,7 @@ Talos Linux is a modern, secure, and immutable operating system designed specifi
 1. In the `output_config/worker.yaml` file, update the fields:
 
 ```
-machine.network.hostname: <desired-hostname-for-raspberry-pi> - e.g.: talos-raspi-1
+machine.network.hostname: <desired-hostname-for-raspberry-pi> - e.g.: talos-raspi-1 (or define it on v1alpha1/HostnameConfig CR at the bottom)
 machine.network.interfaces[0].interface: end0 # Ensure this matches the interface name found earlier
 machine.network.interfaces[0].addresses: <desired-ip-address-for-raspberry-pi>/24 - e.g.: 192.168.1.191/24
 machine.install.disk: /dev/mmcblk0 # Ensure this matches the disk identifier found earlier
@@ -97,6 +101,9 @@ To update the configuration of the node (not use `--insecure`):
 
 ```bash
 talosctl apply-config -f output_config/controlplane.yaml -n $MASTER_NODE_IP
+
+# Example:
+talosctl --context talos-proxmox-cluster apply-config -f output_config/controlplane.yaml -n 192.168.1.190
 ```
 
 For testing purposes, you can run an nginx pod:
@@ -110,6 +117,17 @@ curl http://localhost:8080
 kubectl delete pod/nginx
 ```
 
+## Update Talos cluster
+
+```bash
+# Upgrade Talos version
+talosctl --context talos-proxmox-cluster upgrade -n <CONTROL_PLANE_IP_ADDRESS>
+talosctl --context talos-proxmox-cluster upgrade -n <NODE_IP_ADDRESS>
+
+# Upgrade k8s version
+talosctl --context talos-proxmox-cluster upgrade-k8s -n <CONTROL_PLANE_IP_ADDRESS>
+```
+
 ## Creating Helm template for Talos Cilium Installation
 
 With this command you can create a Helm template for installing Cilium on Talos, which you can then reference in the Talos configuration file (`talos-cluster-config.yaml`):
@@ -121,7 +139,7 @@ helm repo update
 helm template \
   cilium \
   cilium/cilium \
-  --version 1.18.4 \
+  --version 1.18.6 \
   --namespace kube-system \
   --set ipam.mode=kubernetes \
   --set kubeProxyReplacement=true \
@@ -130,5 +148,7 @@ helm template \
   --set cgroup.autoMount.enabled=false \
   --set cgroup.hostRoot=/sys/fs/cgroup \
   --set k8sServiceHost=localhost \
-  --set k8sServicePort=7445 > cilium-helm-template.yaml
+  --set kubeProxyReplacement=true \
+  --set gatewayAPI.enabled=true \
+  --set k8sServicePort=7445 > cilium-gateway-api-helm-template.yaml
 ```
