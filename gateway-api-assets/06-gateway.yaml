@@ -1,0 +1,32 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: cilium-gateway
+  namespace: example-app-namespace
+  annotations:
+    # Create the TLS certificate automatically
+    # IMPORTANT: if the creation of the certificate fails, comment this line, apply the change, uncomment and apply again
+    cert-manager.io/cluster-issuer: letsencrypt-prod # Create the certificate automatically
+spec:
+  gatewayClassName: cilium
+  listeners:
+  - name: http
+    protocol: HTTP
+    port: 80
+    hostname: "amf-cluster.duckdns.org"
+    allowedRoutes:
+      namespaces:
+        from: Same
+  - name: https
+    protocol: HTTPS
+    port: 443
+    hostname: "amf-cluster.duckdns.org"
+    allowedRoutes:
+      namespaces:
+        from: Same
+    tls:
+      # Patch the gateway with the TLS listener
+      mode: Terminate
+      certificateRefs:
+      - kind: Secret
+        name: amf-cluster-tls

@@ -7,7 +7,7 @@ cluster:
           # (*) Choose one CNI and comment the other
 
           # Cilium (Helm template previously generated with the instructions provided in the README)
-          - https://raw.githubusercontent.com/AntonioMartinezFernandez/talos/refs/heads/main/cilium-helm-template.yaml
+          - https://raw.githubusercontent.com/AntonioMartinezFernandez/talos/refs/heads/main/cilium-gateway-api-helm-template.yaml
 
           # Calico
           # - https://raw.githubusercontent.com/projectcalico/calico/v3.25.0/manifests/calico.yaml
